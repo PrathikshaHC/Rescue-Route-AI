@@ -46,6 +46,10 @@
         <span id="map-toggle-text">🗺️ Switch to 3D Canvas</span>
       </button>
 
+      <button id="btn-toggle-traffic" class="traffic-toggle-btn" style="display: flex; align-items: center; gap: 6px; padding: 6px 14px; background: rgba(52, 168, 83, 0.12); border: 1px solid rgba(52, 168, 83, 0.3); border-radius: var(--radius-full); color: var(--success-green); font-weight: 800; font-size: 0.82rem; cursor: pointer; transition: var(--transition);">
+        <span id="traffic-toggle-text">🚦 Google Traffic: ON</span>
+      </button>
+
       <button id="btn-toggle-voice" class="voice-toggle-btn">
         <span id="voice-toggle-text">🔊 ElevenLabs Voice Alert: ON</span>
       </button>
@@ -85,6 +89,7 @@
                   <option value="Sarjapur">Sarjapur Road Wipro Circle (South-East)</option>
                   <option value="Malleshwaram">Malleshwaram Sampige Road (West)</option>
                 </select>
+                <small style="color: #10b981; font-weight: 600; font-size: 11px; margin-top: 4px; display: block;">⚡ Auto-SOS: Selecting pickup address automatically sends Twilio SMS SOS</small>
               </div>
             </div>
 
@@ -133,6 +138,26 @@
             <div class="telemetry-item">
               <div class="telemetry-label">SLA Countdown</div>
               <div class="telemetry-val" id="amb-sla">90s</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel-card">
+          <div class="card-header">
+            <div class="card-title">🤖 Gemini AI Traffic Intelligence</div>
+            <span class="status-badge badge-ai" id="gemini-traffic-badge">LIVE TRAFFIC</span>
+          </div>
+          <div style="font-size: 0.82rem; color: var(--text-main); font-weight: 600; line-height: 1.4; margin-bottom: 10px;" id="gemini-traffic-summary">
+            Analyzing real-time Google Maps traffic flow along Bengaluru emergency corridors...
+          </div>
+          <div class="telemetry-grid" style="grid-template-columns: 1fr 1fr; gap: 8px;">
+            <div class="telemetry-item">
+              <div class="telemetry-label">Corridor Traffic</div>
+              <div class="telemetry-val" id="gemini-traffic-level" style="font-size: 0.82rem; color: var(--success-green);">🟢 Moderate (48 km/h)</div>
+            </div>
+            <div class="telemetry-item">
+              <div class="telemetry-label">Traffic Layer</div>
+              <div class="telemetry-val" style="font-size: 0.82rem; color: var(--primary-cyan);">GOOGLE MAPS TILES</div>
             </div>
           </div>
         </div>
@@ -237,10 +262,30 @@
             <span class="status-badge badge-clear">ONLINE</span>
           </div>
           <div class="responder-action-box">
-            <strong style="font-size: 1.05rem; display: block; margin-bottom: 4px;">Tow Unit #07 (Heavy Recovery)</strong>
+            <strong id="resp-unit-title" style="font-size: 1.05rem; display: block; margin-bottom: 4px;">Tow Unit #07 (Heavy Recovery)</strong>
             <span style="font-size: 0.8rem; color: var(--text-muted); display: block; margin-bottom: 8px;">Authorized Traffic Clearance Asset</span>
             <div style="font-size: 0.82rem; font-weight: 700; color: var(--primary-cyan);">Proximity: 0.8 km to Junction 4 MG Road</div>
           </div>
+        </div>
+
+        <div class="panel-card">
+          <div class="card-header">
+            <div class="card-title">📱 Tow Unit SOS Alert</div>
+            <span class="status-badge badge-ai" id="sos-status-badge">n8n SMS READY</span>
+          </div>
+          <div style="font-size: 0.82rem; color: var(--text-main); font-weight: 600; line-height: 1.4; margin-bottom: 10px;">
+            Automated SMS & WhatsApp dispatch for tow clearance responders:
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <input type="tel" id="input-sos-phone" class="location-input" placeholder="+91 9353039320" value="+919353039320" style="font-size: 0.9rem;" />
+            <button class="btn-primary btn-danger" id="btn-send-sos-sms">
+              <span>📱 Send Direct SMS SOS</span>
+            </button>
+            <button class="btn-primary" id="btn-send-sos-whatsapp" style="background: #25D366; color: #ffffff; box-shadow: 0 4px 14px rgba(37, 211, 102, 0.4);">
+              <span>💬 Send WhatsApp SOS</span>
+            </button>
+          </div>
+          <div id="sos-dispatch-log" style="font-size: 0.78rem; font-weight: 800; color: var(--success-green); margin-top: 10px; display: none; background: rgba(52, 168, 83, 0.1); padding: 8px 10px; border-radius: var(--radius-sm); border: 1px solid var(--success-green);"></div>
         </div>
       </aside>
 
@@ -312,8 +357,8 @@
 
           <!-- Lifecycle Progression Control Button -->
           <div class="alert-actions" style="margin-top: 16px;">
-            <button class="btn-primary btn-cyan" id="resp-btn-next-stage" disabled>
-              <span>Advance Status $\rightarrow$</span>
+            <button class="btn-primary btn-cyan" id="resp-btn-next-stage">
+              <span>Advance Status ➡️</span>
             </button>
           </div>
         </div>
@@ -423,9 +468,9 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <!-- Application Modules -->
-  <script src="js/three-scene.js"></script>
-  <script src="js/map-engine.js"></script>
-  <script src="js/simulation-engine.js"></script>
-  <script src="js/app.js"></script>
+  <script src="js/three-scene.js?v=18.0"></script>
+  <script src="js/map-engine.js?v=18.0"></script>
+  <script src="js/simulation-engine.js?v=18.0"></script>
+  <script src="js/app.js?v=18.0"></script>
 </body>
 </html>

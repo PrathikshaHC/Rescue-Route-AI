@@ -70,16 +70,36 @@ class MapboxEngine {
       attributionControl: false
     }).setView(this.junction4Coords, 13);
 
-    // Official Google Maps Standard Vector Tile Layer
+    // Official Google Maps Standard Base Tile Layer
     L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
       maxZoom: 20,
       subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
+    }).addTo(this.map);
+
+    // Official Google Maps Real-Time Live Traffic Flow Layer
+    this.trafficLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=m,traffic&x={x}&y={y}&z={z}', {
+      maxZoom: 20,
+      subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+      opacity: 0.85
     }).addTo(this.map);
 
     L.control.zoom({ position: 'topright' }).addTo(this.map);
 
     this.addMarkers();
     this.drawMainPolyline();
+  }
+
+  toggleTraffic(enable) {
+    if (!this.map || !this.trafficLayer) return;
+    if (enable) {
+      if (!this.map.hasLayer(this.trafficLayer)) {
+        this.trafficLayer.addTo(this.map);
+      }
+    } else {
+      if (this.map.hasLayer(this.trafficLayer)) {
+        this.map.removeLayer(this.trafficLayer);
+      }
+    }
   }
 
   addMarkers() {
@@ -119,17 +139,39 @@ class MapboxEngine {
       .bindPopup("<b>Tow Unit #07</b><br>Authorized Responder");
   }
 
-  drawMainPolyline() {
+  async drawMainPolyline() {
+    if (this.altRoutePolyline) {
+      this.map.removeLayer(this.altRoutePolyline);
+      this.altRoutePolyline = null;
+    }
+    if (this.altRouteOutlinePolyline) {
+      this.map.removeLayer(this.altRouteOutlinePolyline);
+      this.altRouteOutlinePolyline = null;
+    }
+
     const origObj = BLR_LOCATIONS[this.currentOriginKey] || BLR_LOCATIONS.Majestic;
     const destObj = BLR_LOCATIONS[this.currentDestKey] || BLR_LOCATIONS.Hospital;
 
-    const mainWaypoints = [
+    let mainWaypoints = [
       [origObj.lat, origObj.lng],
-      [ (origObj.lat + this.junction4Coords[0]) / 2, (origObj.lng + this.junction4Coords[1]) / 2 ],
+      [ (origObj.lat * 0.6 + this.junction4Coords[0] * 0.4), (origObj.lng * 0.6 + this.junction4Coords[1] * 0.4) ],
       this.junction4Coords,
-      [ (this.junction4Coords[0] + destObj.lat) / 2, (this.junction4Coords[1] + destObj.lng) / 2 ],
+      [ (this.junction4Coords[0] * 0.4 + destObj.lat * 0.6), (this.junction4Coords[1] * 0.4 + destObj.lng * 0.6) ],
       [destObj.lat, destObj.lng]
     ];
+
+    try {
+      const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${origObj.lng},${origObj.lat};${this.junction4Coords[1]},${this.junction4Coords[0]};${destObj.lng},${destObj.lat}?overview=full&geometries=geojson`;
+      const res = await fetch(osrmUrl);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.routes && data.routes[0] && data.routes[0].geometry) {
+          mainWaypoints = data.routes[0].geometry.coordinates.map(c => [c[1], c[0]]);
+        }
+      }
+    } catch (e) {
+      console.warn("Using street geometry fallback:", e);
+    }
 
     if (this.routePolyline) this.map.removeLayer(this.routePolyline);
 
@@ -165,29 +207,78 @@ class MapboxEngine {
     }
   }
 
-  showAlternateReroute() {
-    this.setRouteColor('#ea4335'); // Red for blocked route
+  async showAlternateReroute(routeIndex = 1) {
+    this.setRouteColor('#ea4335'); // Turn blocked route red
 
-    const origObj = BLR_LOCATIONS[this.currentOriginKey];
-    const destObj = BLR_LOCATIONS[this.currentDestKey];
+    const origObj = BLR_LOCATIONS[this.currentOriginKey] || BLR_LOCATIONS.Majestic;
+    const destObj = BLR_LOCATIONS[this.currentDestKey] || BLR_LOCATIONS.Hospital;
 
-    const altWaypoints = [
+    const midLat = (origObj.lat + destObj.lat) / 2;
+    const midLng = (origObj.lng + destObj.lng) / 2;
+
+    const routeOptions = [
+      { name: "Avenue 6 North Bypass", latOffset: 0.015, lngOffset: -0.012 },
+      { name: "Trinity Circle South Corridor", latOffset: -0.014, lngOffset: 0.015 },
+      { name: "Cubbon Park Expressway", latOffset: 0.022, lngOffset: 0.008 }
+    ];
+
+    const idx = (Math.max(1, routeIndex) - 1) % routeOptions.length;
+    const selectedRoute = routeOptions[idx];
+
+    const altViaLat = midLat + selectedRoute.latOffset;
+    const altViaLng = midLng + selectedRoute.lngOffset;
+
+    let initialWaypoints = [
       [origObj.lat, origObj.lng],
-      [origObj.lat - 0.015, origObj.lng + 0.015],
-      [destObj.lat + 0.01, destObj.lng - 0.01],
+      [ (origObj.lat * 0.5 + altViaLat * 0.5), (origObj.lng * 0.5 + altViaLng * 0.5) ],
+      [altViaLat, altViaLng],
+      [ (altViaLat * 0.5 + destObj.lat * 0.5), (altViaLng * 0.5 + destObj.lng * 0.5) ],
       [destObj.lat, destObj.lng]
     ];
 
+    // INSTANTLY render outline & bright neon green dashed polyline (0ms delay)
+    if (this.altRouteOutlinePolyline) this.map.removeLayer(this.altRouteOutlinePolyline);
     if (this.altRoutePolyline) this.map.removeLayer(this.altRoutePolyline);
 
-    this.altRoutePolyline = L.polyline(altWaypoints, {
-      color: '#34a853', // Google Green
-      weight: 7,
-      dashArray: '10, 10',
-      opacity: 0.95
+    // Dark contrast shadow outline
+    this.altRouteOutlinePolyline = L.polyline(initialWaypoints, {
+      color: '#0f172a',
+      weight: 12,
+      opacity: 0.85,
+      lineCap: 'round',
+      lineJoin: 'round'
+    }).addTo(this.map);
+
+    // Bright Neon Green Dashed Polyline
+    this.altRoutePolyline = L.polyline(initialWaypoints, {
+      color: '#00e676', // High-visibility Neon Green
+      weight: 8,
+      dashArray: '12, 12',
+      opacity: 1.0,
+      lineCap: 'round',
+      lineJoin: 'round'
     }).addTo(this.map);
 
     this.map.fitBounds(this.altRoutePolyline.getBounds(), { padding: [50, 50] });
+
+    // Asynchronously update with detailed OSRM turn-by-turn road geometry
+    try {
+      const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${origObj.lng},${origObj.lat};${altViaLng},${altViaLat};${destObj.lng},${destObj.lat}?overview=full&geometries=geojson`;
+      const res = await fetch(osrmUrl);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.routes && data.routes[0] && data.routes[0].geometry) {
+          const dataCoords = data.routes[0].geometry.coordinates.map(c => [c[1], c[0]]);
+          if (this.altRouteOutlinePolyline) this.altRouteOutlinePolyline.setLatLngs(dataCoords);
+          if (this.altRoutePolyline) this.altRoutePolyline.setLatLngs(dataCoords);
+          this.map.fitBounds(this.altRoutePolyline.getBounds(), { padding: [50, 50] });
+        }
+      }
+    } catch (e) {
+      console.warn("Using alternate road geometry fallback:", e);
+    }
+
+    return selectedRoute;
   }
 
   dispatchTowTruckAnimation() {
