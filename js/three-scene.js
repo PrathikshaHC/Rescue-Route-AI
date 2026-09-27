@@ -2,6 +2,7 @@
  * RescuRoute AI - Fullscreen Pure 3D Image Engine
  * Scales the user's exact 3D background image plane to cover 100% of the viewport
  * edge-to-edge on any screen resolution, with interactive 3D motion.
+ * Last Updated: 2026-09-27 (Twilio REST API & Auto-SOS Dispatch Grid)
  */
 
 class ThreeSceneEngine {

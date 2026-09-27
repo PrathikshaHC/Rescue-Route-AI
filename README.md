@@ -1,7 +1,7 @@
 # 🚑 RescuRoute AI – Closed-Loop Emergency Obstruction Response Agent
 
 > **AI-Powered Emergency Coordination for Faster Ambulance Obstruction Resolution**  
-> *Developed for Emergency Hackathon*
+> *Developed for Emergency Hackathon | Last Updated: 2026-09-27 (Twilio REST API & Auto-SOS Dispatch Grid)*
 
 ---
 
@@ -49,11 +49,12 @@ Traditional navigation apps (GPS) only inform drivers of traffic passively. They
 
 ## 🛠️ Technology Stack
 
-* **Frontend**: HTML5, Vanilla CSS3 (Glassmorphism design system), JavaScript (ES6).
+* **Frontend**: HTML5, Vanilla CSS3 (Glassmorphic design system), JavaScript (ES6).
 * **3D Visual Engine**: Three.js (Full-Screen 3D WebGL Image Mesh with mouse parallax depth).
 * **Maps & GIS Routing**: Leaflet.js with official Google Maps vector tiles (`mt1.google.com`) + Mapbox GL JS v3 Directions API.
 * **Voice Alerts**: ElevenLabs Emergency Voice Alert synthesis.
 * **Workflow Automation**: n8n Automated State Machine Engine.
+* **SMS SOS Dispatch**: Direct Twilio REST API Integration with automatic FROM selection trigger.
 
 ---
 
@@ -69,8 +70,8 @@ Traditional navigation apps (GPS) only inform drivers of traffic passively. They
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/PrathikshaHC/emergend_hackathon.git
-   cd emergend_hackathon
+   git clone https://github.com/PrathikshaHC/Rescue-Route-AI.git
+   cd Rescue-Route-AI
    ```
 
 2. Start the local server:
