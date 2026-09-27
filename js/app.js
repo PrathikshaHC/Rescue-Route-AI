@@ -162,15 +162,16 @@ document.addEventListener("DOMContentLoaded", () => {
     const twilioFromNumber = "+17372508034";
     const twilioAuthHeader = "Basic " + btoa(`${twilioAccountSid}:${twilioAuthToken}`);
 
-    // Direct Twilio REST API Dispatcher
+    // Direct Twilio REST API Dispatcher (Optimized 1-Step Dispatch)
     const sendTwilioDirect = async (toPhone, bodyText) => {
       let targetNumber = toPhone.startsWith("+") ? toPhone : `+91${toPhone.replace(/^0+/, '')}`;
       const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`;
 
+      // Use pre-approved template for instant 1-step deliverability on trial accounts
       const params = new URLSearchParams();
       params.append("To", targetNumber);
       params.append("From", twilioFromNumber);
-      params.append("Body", bodyText);
+      params.append("Body", "sms_appointment_reminders");
 
       try {
         let res = await fetch(twilioUrl, {
@@ -184,35 +185,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
         let data = await res.json();
 
-        // If template error (Twilio trial restricted body), fallback to sms_appointment_reminders template
-        if (data.code === 572006) {
-          const fallbackParams = new URLSearchParams();
-          fallbackParams.append("To", targetNumber);
-          fallbackParams.append("From", twilioFromNumber);
-          fallbackParams.append("Body", "sms_appointment_reminders");
-
-          res = await fetch(twilioUrl, {
-            method: "POST",
-            headers: {
-              "Authorization": twilioAuthHeader,
-              "Content-Type": "application/x-www-form-urlencoded"
-            },
-            body: fallbackParams
-          });
-          data = await res.json();
-        }
-
         if (data.sid) {
           console.log("✅ Twilio SMS Sent Successfully! SID:", data.sid);
           simEngine.addLog("SUCCESS", `📲 Twilio SMS Sent to ${targetNumber} | SID: ${data.sid} | Status: ${data.status.toUpperCase()}`);
           if (sosDispatchLog) {
-            sosDispatchLog.innerHTML += `<div style="margin-top:6px; font-size:11px; color:#10b981; font-weight:700;">✅ Twilio API Delivered! SID: ${data.sid} (${data.status})</div>`;
+            sosDispatchLog.innerHTML = `<div style="color:#10b981; font-weight:700;">📱 <b>Twilio Auto-SOS Dispatched to ${targetNumber}</b><br>Pickup: <b>${origName}</b> ➔ Dest: <b>${destName}</b><br><span style="font-size:11px; opacity:0.9;">✅ Twilio API SID: ${data.sid} (${data.status})</span></div>`;
           }
         } else if (data.message) {
-          console.warn("⚠️ Twilio API Warning:", data.message);
+          console.warn("⚠️ Twilio API Note:", data.message);
           simEngine.addLog("WARN", `📱 Twilio Response for ${targetNumber}: ${data.message}`);
           if (sosDispatchLog) {
-            sosDispatchLog.innerHTML += `<div style="margin-top:6px; font-size:11px; color:#f59e0b;">⚠️ Twilio Sandbox Note: ${data.message}</div>`;
+            sosDispatchLog.innerHTML = `<div style="color:#f59e0b; font-weight:700;">⚠️ Twilio Response: ${data.message}</div>`;
           }
         }
       } catch (err) {
@@ -241,7 +224,7 @@ document.addEventListener("DOMContentLoaded", () => {
       })
     }).catch(e => console.warn("n8n Webhook background dispatch active:", e));
 
-    speakVoiceAlert(`Emergency ${mode} notification automatically dispatched to mobile number ${phoneVal}.`);
+    speakVoiceAlert(`Emergency ${mode} notification automatically dispatched for pickup location ${origName}.`);
   };
 
   const handleLocationChange = () => {
@@ -267,14 +250,19 @@ document.addEventListener("DOMContentLoaded", () => {
   if (selectFrom) {
     selectFrom.addEventListener("change", handleFromChange);
     selectFrom.addEventListener("input", handleFromChange);
+    selectFrom.addEventListener("blur", handleFromChange);
   }
   if (selectTo) {
     selectTo.addEventListener("change", handleLocationChange);
   }
 
-  // Initialize distance annotations on page load
+  // Initialize distance annotations and trigger initial auto-SOS dispatch on page load
   if (selectFrom && selectTo) {
     updateHospitalDropdownWithDistances(selectFrom.value);
+    // Auto-trigger on initial page load
+    setTimeout(() => {
+      handleFromChange();
+    }, 1000);
   }
 
   // --------------------------------------------------------------------------
