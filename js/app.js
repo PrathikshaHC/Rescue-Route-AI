@@ -1,6 +1,6 @@
 /**
  * RescuRoute AI - Main Application Coordinator (3-Dashboard Hackathon MVP)
- * Google Maps Style Navigation & Closed-Loop Response Engine
+ * Full Bengaluru Emergency Grid Integration (14+ Origins & 12+ Hospitals)
  */
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -27,6 +27,9 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnToggleVoice = document.getElementById("btn-toggle-voice");
   const voiceToggleText = document.getElementById("voice-toggle-text");
 
+  const selectFrom = document.getElementById("select-from");
+  const selectTo = document.getElementById("select-to");
+
   let isMapModeActive = true; // Active by default like Google Maps!
 
   // Ambulance Elements
@@ -52,6 +55,21 @@ document.addEventListener("DOMContentLoaded", () => {
   const adminLogFeed = document.getElementById("admin-log-feed");
 
   // --------------------------------------------------------------------------
+  // Location Dropdown Change Listeners (Bengaluru Grid)
+  // --------------------------------------------------------------------------
+  const handleLocationChange = () => {
+    const fromVal = selectFrom.value;
+    const toVal = selectTo.value;
+    mapEngine.updateVector(fromVal, toVal);
+    const origName = BLR_LOCATIONS[fromVal] ? BLR_LOCATIONS[fromVal].name : fromVal;
+    const destName = BLR_LOCATIONS[toVal] ? BLR_LOCATIONS[toVal].name : toVal;
+    simEngine.addLog("INFO", `Vector updated: ${origName} ➔ ${destName}.`);
+  };
+
+  selectFrom.addEventListener("change", handleLocationChange);
+  selectTo.addEventListener("change", handleLocationChange);
+
+  // --------------------------------------------------------------------------
   // 3-Dashboard Tab Switcher
   // --------------------------------------------------------------------------
   const switchView = (activeTab, activeView, viewName) => {
@@ -68,7 +86,7 @@ document.addEventListener("DOMContentLoaded", () => {
   tabResponder.addEventListener("click", () => switchView(tabResponder, viewResponder, "Responder Dashboard"));
   tabAdmin.addEventListener("click", () => switchView(tabAdmin, viewAdmin, "Command Admin Control Room"));
 
-  // Toggle Map Visibility (Default is Visible Google Maps)
+  // Toggle Map Visibility
   btnToggleMap.addEventListener("click", () => {
     isMapModeActive = !isMapModeActive;
     if (isMapModeActive) {
@@ -103,10 +121,13 @@ document.addEventListener("DOMContentLoaded", () => {
   // Simulation Controls & Event Handlers
   // --------------------------------------------------------------------------
   document.getElementById("btn-start-sim").addEventListener("click", () => {
-    const fromVal = document.getElementById("select-from").value;
-    const toVal = document.getElementById("select-to").value;
-    simEngine.startSimulation(fromVal, toVal);
-    speakVoiceAlert(`Ambulance AMB-04 dispatched from ${fromVal} to ${toVal}.`);
+    const fromVal = selectFrom.value;
+    const toVal = selectTo.value;
+    const origName = BLR_LOCATIONS[fromVal] ? BLR_LOCATIONS[fromVal].name : fromVal;
+    const destName = BLR_LOCATIONS[toVal] ? BLR_LOCATIONS[toVal].name : toVal;
+
+    simEngine.startSimulation(origName, destName);
+    speakVoiceAlert(`Ambulance AMB-04 dispatched from ${origName} to ${destName}.`);
   });
 
   document.getElementById("btn-trigger-obs").addEventListener("click", () => {
@@ -242,7 +263,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // 5-Stage Lifecycle UI Helper
   const updateLifecycleUI = (stageNum) => {
     for (let i = 1; i <= 5; i++) {
       const el = document.getElementById(`stage-${i}`);
